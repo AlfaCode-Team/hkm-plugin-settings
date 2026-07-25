@@ -1,0 +1,15 @@
+{
+    "name": "alfacode-team/hkm-plugin-settings",
+    "description": "HKM Kernel plugin providing 'tenant.settings'.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["hkm-kernel", "plugin", "php", "tenant.settings"],
+    "require": {
+        "php": ">=8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Plugins\\Settings\\": ""
+        }
+    }
+}

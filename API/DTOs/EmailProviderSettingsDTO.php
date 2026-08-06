@@ -81,25 +81,65 @@ final readonly class EmailProviderSettingsDTO
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Replace a stored secret with a non-reversible hint for API responses.
+     *
+     * toArray() feeds the settings GET endpoint, so returning these verbatim
+     * handed every reader the live SendGrid / Mailgun / AWS / SMTP credentials
+     * in cleartext. A masked value still lets a UI show "a key is configured"
+     * and its last few characters for recognition, without disclosing it.
+     *
+     * toRow() is deliberately NOT masked — that is the persistence path and
+     * must round-trip the real value.
+     */
+    private static function mask(?string $secret): ?string
+    {
+        if ($secret === null || $secret === '') {
+            return $secret;
+        }
+
+        $tail = mb_substr($secret, -4);
+
+        return mb_strlen($secret) <= 4 ? '****' : str_repeat('*', 8) . $tail;
+    }
+
     public function toArray(): array
     {
         return [
             'tenant_id'             => $this->tenantId,
-            'sendgrid_api_key'      => $this->sendgridApiKey,
+            'sendgrid_api_key'      => self::mask($this->sendgridApiKey),
             'mailgun_domain'        => $this->mailgunDomain,
-            'mailgun_api_key'       => $this->mailgunApiKey,
+            'mailgun_api_key'       => self::mask($this->mailgunApiKey),
             'mailgun_region'        => $this->mailgunRegion,
-            'postmark_server_token' => $this->postmarkServerToken,
+            'postmark_server_token' => self::mask($this->postmarkServerToken),
             'aws_access_key_id'     => $this->awsAccessKeyId,
-            'aws_secret_access_key' => $this->awsSecretAccessKey,
+            'aws_secret_access_key' => self::mask($this->awsSecretAccessKey),
             'aws_region'            => $this->awsRegion,
         ];
     }
 
     /** @return array<string, mixed> */
+    /**
+     * The PERSISTENCE shape — real values, never masked.
+     *
+     * This used to delegate to toArray(). Once toArray() started masking
+     * secrets for API responses, that delegation would have written the MASK
+     * back to the database on the next save, destroying the stored credential.
+     * The two shapes have genuinely different jobs and must stay separate.
+     */
     public function toRow(): array
     {
-        return $this->toArray();
+        return [
+            'tenant_id'             => $this->tenantId,
+            'sendgrid_api_key'      => ($this->sendgridApiKey),
+            'mailgun_domain'        => $this->mailgunDomain,
+            'mailgun_api_key'       => ($this->mailgunApiKey),
+            'mailgun_region'        => $this->mailgunRegion,
+            'postmark_server_token' => ($this->postmarkServerToken),
+            'aws_access_key_id'     => $this->awsAccessKeyId,
+            'aws_secret_access_key' => ($this->awsSecretAccessKey),
+            'aws_region'            => $this->awsRegion,
+        ];
     }
 
     private static function str(mixed $v): ?string

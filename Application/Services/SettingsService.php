@@ -75,6 +75,11 @@ final class SettingsService implements SettingsServiceContract
 
     public function email(string $tenantId): EmailSettingsDTO
     {
+        // Secret-bearing section: reading it discloses live credentials, so it
+        // requires the same permission as writing. Reads used to be open to any
+        // authenticated tenant member.
+        $this->assertCanManage(SettingsSection::Email);
+
         $settings = $this->repository->fetch(SettingsSection::Email, $tenantId);
 
         return $settings === null
@@ -91,6 +96,11 @@ final class SettingsService implements SettingsServiceContract
 
     public function emailProviders(string $tenantId): EmailProviderSettingsDTO
     {
+        // Secret-bearing section: reading it discloses live credentials, so it
+        // requires the same permission as writing. Reads used to be open to any
+        // authenticated tenant member.
+        $this->assertCanManage(SettingsSection::EmailProviders);
+
         $settings = $this->repository->fetch(SettingsSection::EmailProviders, $tenantId);
 
         return $settings === null
@@ -145,8 +155,13 @@ final class SettingsService implements SettingsServiceContract
 
     /**
      * Writing tenant settings is an administrative action: the caller must hold
-     * the `settings:manage` permission, or an `admin`/`super` role. Reads are
-     * open to any authenticated tenant member. (The route's `auth` filter and the
+     * the `settings:manage` permission, or an `admin`/`super` role.
+     *
+     * Reads of NON-secret sections (company, contact, system) remain open to any
+     * authenticated tenant member. Reads of the email and email-provider
+     * sections do NOT: they carry SMTP passwords and SendGrid / Mailgun /
+     * Postmark / AWS credentials, so disclosing them is equivalent to granting
+     * the ability to send mail as the tenant. (The route's `auth` filter and the
      * controller's tenant-scope guard run before this.)
      */
     private function assertCanManage(SettingsSection $section): void

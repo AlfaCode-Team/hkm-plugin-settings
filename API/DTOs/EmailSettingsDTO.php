@@ -136,6 +136,28 @@ final readonly class EmailSettingsDTO
     }
 
     /** @return array<string, mixed> */
+    /**
+     * Replace a stored secret with a non-reversible hint for API responses.
+     *
+     * toArray() feeds the settings GET endpoint, so returning these verbatim
+     * handed every reader the live SendGrid / Mailgun / AWS / SMTP credentials
+     * in cleartext. A masked value still lets a UI show "a key is configured"
+     * and its last few characters for recognition, without disclosing it.
+     *
+     * toRow() is deliberately NOT masked — that is the persistence path and
+     * must round-trip the real value.
+     */
+    private static function mask(?string $secret): ?string
+    {
+        if ($secret === null || $secret === '') {
+            return $secret;
+        }
+
+        $tail = mb_substr($secret, -4);
+
+        return mb_strlen($secret) <= 4 ? '****' : str_repeat('*', 8) . $tail;
+    }
+
     public function toArray(): array
     {
         return [
@@ -144,7 +166,7 @@ final readonly class EmailSettingsDTO
             'smtp_host'                => $this->smtpHost,
             'smtp_port'                => $this->smtpPort,
             'smtp_username'            => $this->smtpUsername,
-            'smtp_password'            => $this->smtpPassword,
+            'smtp_password'            => self::mask($this->smtpPassword),
             'smtp_encryption'          => $this->smtpEncryption,
             'sender_name'              => $this->senderName,
             'sender_email'             => $this->senderEmail,

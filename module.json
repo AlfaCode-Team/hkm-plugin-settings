@@ -1,26 +1,28 @@
 {
     "name": "settings",
     "version": "1.0.1",
-    "kernel": "^1.0",
+    "kernel": "^1.2",
     "solves": "tenant.settings",
     "type": "module",
 
     "requires": ["database.management", "validation.rules"],
     "exposes": ["Plugins\\Settings\\API\\Contracts\\SettingsServiceContract"],
 
+    "routePrefix": "/api/settings",
+    "routeFilters": ["auth"],
     "routes": [
-        { "method": "GET",    "path": "/api/settings/company",      "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@company",           "filters": ["auth"] },
-        { "method": "PUT",    "path": "/api/settings/company",      "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveCompany",       "filters": ["auth"] },
-        { "method": "POST",   "path": "/api/settings/company/logo", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@uploadCompanyLogo", "filters": ["auth"], "requires": ["storage.local"] },
-        { "method": "DELETE", "path": "/api/settings/company/logo", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@removeCompanyLogo", "filters": ["auth"], "requires": ["storage.local"] },
-        { "method": "GET", "path": "/api/settings/contact",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@contact",        "filters": ["auth"] },
-        { "method": "PUT", "path": "/api/settings/contact",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveContact",    "filters": ["auth"] },
-        { "method": "GET", "path": "/api/settings/email",           "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@email",          "filters": ["auth"] },
-        { "method": "PUT", "path": "/api/settings/email",           "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveEmail",      "filters": ["auth"] },
-        { "method": "GET", "path": "/api/settings/email-providers", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@emailProviders", "filters": ["auth"] },
-        { "method": "PUT", "path": "/api/settings/email-providers", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveEmailProviders", "filters": ["auth"] },
-        { "method": "GET", "path": "/api/settings/system",          "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@system",         "filters": ["auth"] },
-        { "method": "PUT", "path": "/api/settings/system",          "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveSystem",     "filters": ["auth"] }
+        { "method": "GET",    "path": "/company",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@company" },
+        { "method": "PUT",    "path": "/company",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveCompany" },
+        { "method": "POST",   "path": "/company/logo",    "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@uploadCompanyLogo",  "requires": ["storage.local"] },
+        { "method": "DELETE", "path": "/company/logo",    "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@removeCompanyLogo",  "requires": ["storage.local"] },
+        { "method": "GET",    "path": "/contact",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@contact" },
+        { "method": "PUT",    "path": "/contact",         "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveContact" },
+        { "method": "GET",    "path": "/email",           "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@email" },
+        { "method": "PUT",    "path": "/email",           "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveEmail" },
+        { "method": "GET",    "path": "/email-providers", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@emailProviders" },
+        { "method": "PUT",    "path": "/email-providers", "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveEmailProviders" },
+        { "method": "GET",    "path": "/system",          "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@system" },
+        { "method": "PUT",    "path": "/system",          "handler": "Plugins\\Settings\\Infrastructure\\Http\\SettingsController@saveSystem" }
     ],
 
     "emits":   [],

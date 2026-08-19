@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Plugins\Settings\Infrastructure\Http;
 
-use AlfacodeTeam\PhpServicePlatform\Kernel\Http\{Request, Response};
+use AlfacodeTeam\PhpServicePlatform\Kernel\Http\Response;
 use AlfacodeTeam\PhpServicePlatform\Kernel\Ports\StoragePort;
 use AlfacodeTeam\PhpServicePlatform\Kernel\Security\Identity;
 use Plugins\Settings\API\Contracts\SettingsServiceContract;
@@ -13,8 +13,9 @@ use Plugins\Settings\API\DTOs\ContactSettingsDTO;
 use Plugins\Settings\API\DTOs\EmailProviderSettingsDTO;
 use Plugins\Settings\API\DTOs\EmailSettingsDTO;
 use Plugins\Settings\API\DTOs\SystemSettingsDTO;
+use Project\Http\Controllers\ApiController;
 
-final class SettingsController
+final class SettingsController extends ApiController
 {
     /** Allowed logo upload extensions. */
     private const LOGO_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'];
@@ -24,18 +25,18 @@ final class SettingsController
         private readonly Identity $identity,
     ) {}
 
-    public function company(Request $request): Response
+    public function company(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->company($t)->toArray()]));
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->company($t)->toArray()));
     }
 
-    public function saveCompany(Request $request): Response
+    public function saveCompany(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->saveCompany(
-                CompanySettingsDTO::fromRequest($request, $this->settings->company($t))
-            )->toArray()]));
+        $request = $this->request;
+
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->saveCompany(
+            CompanySettingsDTO::fromRequest($request, $this->settings->company($t))
+        )->toArray()));
     }
 
     /**
@@ -43,22 +44,22 @@ final class SettingsController
      * persists its path onto the company settings; the previous blob is deleted.
      * Route MUST declare `"requires": ["storage.local"]`.
      */
-    public function uploadCompanyLogo(Request $request): Response
+    public function uploadCompanyLogo(): Response
     {
-        return $this->scoped(function (string $t) use ($request) {
-            $file = $request->file('company_logo');
+        return $this->scoped(function (string $t) {
+            $file = $this->request?->file('company_logo');
             if ($file === null || !$file->isValid()) {
-                return Response::unprocessable(['company_logo' => 'A valid image upload is required.']);
+                return $this->unprocessable(['company_logo' => 'A valid image upload is required.']);
             }
 
             $ext = strtolower($file->extension());
             if (!in_array($ext, self::LOGO_EXTENSIONS, true)) {
-                return Response::unprocessable([
+                return $this->unprocessable([
                     'company_logo' => 'Logo must be an image (' . implode(', ', self::LOGO_EXTENSIONS) . ').',
                 ]);
             }
 
-            $storage = $this->storage($request);
+            $storage = $this->storage();
             if ($storage === null) {
                 return Response::serverError('Storage backend is not available.');
             }
@@ -89,74 +90,74 @@ final class SettingsController
      * Remove the company logo: clears the settings path and deletes the blob.
      * Route MUST declare `"requires": ["storage.local"]`.
      */
-    public function removeCompanyLogo(Request $request): Response
+    public function removeCompanyLogo(): Response
     {
-        return $this->scoped(function (string $t) use ($request) {
+        return $this->scoped(function (string $t) {
             $previous = $this->settings->company($t)->logo;
             $dto      = $this->settings->removeCompanyLogo($t);
 
             if ($previous !== null && $previous !== '') {
-                $this->storage($request)?->delete($previous);
+                $this->storage()?->delete($previous);
             }
 
-            return Response::json(['data' => $dto->toArray()]);
+            return $this->ok($dto->toArray());
         });
     }
 
-    public function contact(Request $request): Response
+    public function contact(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->contact($t)->toArray()]));
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->contact($t)->toArray()));
     }
 
-    public function saveContact(Request $request): Response
+    public function saveContact(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->saveContact(
-                ContactSettingsDTO::fromRequest($request, $this->settings->contact($t))
-            )->toArray()]));
+        $request = $this->request;
+
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->saveContact(
+            ContactSettingsDTO::fromRequest($request, $this->settings->contact($t))
+        )->toArray()));
     }
 
-    public function email(Request $request): Response
+    public function email(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->email($t)->toArray()]));
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->email($t)->toArray()));
     }
 
-    public function saveEmail(Request $request): Response
+    public function saveEmail(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->saveEmail(
-                EmailSettingsDTO::fromRequest($request, $this->settings->email($t))
-            )->toArray()]));
+        $request = $this->request;
+
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->saveEmail(
+            EmailSettingsDTO::fromRequest($request, $this->settings->email($t))
+        )->toArray()));
     }
 
-    public function emailProviders(Request $request): Response
+    public function emailProviders(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->emailProviders($t)->toArray()]));
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->emailProviders($t)->toArray()));
     }
 
-    public function saveEmailProviders(Request $request): Response
+    public function saveEmailProviders(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->saveEmailProviders(
-                EmailProviderSettingsDTO::fromRequest($request, $this->settings->emailProviders($t))
-            )->toArray()]));
+        $request = $this->request;
+
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->saveEmailProviders(
+            EmailProviderSettingsDTO::fromRequest($request, $this->settings->emailProviders($t))
+        )->toArray()));
     }
 
-    public function system(Request $request): Response
+    public function system(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->system($t)->toArray()]));
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->system($t)->toArray()));
     }
 
-    public function saveSystem(Request $request): Response
+    public function saveSystem(): Response
     {
-        return $this->scoped(fn(string $t) =>
-            Response::json(['data' => $this->settings->saveSystem(
-                SystemSettingsDTO::fromRequest($request, $this->settings->system($t))
-            )->toArray()]));
+        $request = $this->request;
+
+        return $this->scoped(fn(string $t) => $this->ok($this->settings->saveSystem(
+            SystemSettingsDTO::fromRequest($request, $this->settings->system($t))
+        )->toArray()));
     }
 
     /**
@@ -172,7 +173,7 @@ final class SettingsController
     {
         $tenantId = $this->identity->tenantId;
         if ($tenantId === '') {
-            return Response::forbidden('A tenant-scoped token is required to access settings.');
+            return $this->forbidden('A tenant-scoped token is required to access settings.');
         }
 
         return $handler($tenantId);
@@ -182,9 +183,9 @@ final class SettingsController
      * Resolve the on-demand StoragePort from the request container. Bound only on
      * routes that declare `"requires": ["storage.local"]`; null otherwise.
      */
-    private function storage(Request $request): ?StoragePort
+    private function storage(): ?StoragePort
     {
-        $container = $request->container();
+        $container = $this->request?->container();
         if ($container === null || !$container->has(StoragePort::class)) {
             return null;
         }

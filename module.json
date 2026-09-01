@@ -6,6 +6,8 @@
     "type": "module",
 
     "requires": ["database.management", "validation.rules"],
+
+    "migrationRequires": ["tenancy.routing"],
     "exposes": ["Plugins\\Settings\\API\\Contracts\\SettingsServiceContract"],
 
     "routePrefix": "/api/settings",

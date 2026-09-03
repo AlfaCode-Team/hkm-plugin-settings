@@ -1,11 +1,13 @@
 {
     "name": "settings",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "kernel": "^1.2",
     "solves": "tenant.settings",
     "type": "module",
 
     "requires": ["database.management", "validation.rules"],
+
+    "migrationRequires": ["tenancy.routing"],
     "exposes": ["Plugins\\Settings\\API\\Contracts\\SettingsServiceContract"],
 
     "routePrefix": "/api/settings",

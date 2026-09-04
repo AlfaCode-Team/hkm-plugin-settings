@@ -61,7 +61,7 @@ final class SettingsController extends ApiController
 
             $storage = $this->storage();
             if ($storage === null) {
-                return Response::serverError('Storage backend is not available.');
+                return Response::serverError(trans_or('settings::messages.storage.unavailable', 'Settings storage is unavailable. Please try again shortly.'));
             }
 
             $previous = $this->settings->company($t)->logo;

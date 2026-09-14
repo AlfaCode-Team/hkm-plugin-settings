@@ -51,6 +51,87 @@ The company logo is a stored blob, not a path the client controls. Two routes
 Unlike the legacy controller, nothing is written to `public_path()` and there is
 no favicon-set side effect — a single blob per tenant, served via a signed URL.
 
+## System read path — `TenantSettingsReaderContract`
+
+`SettingsServiceContract::email()` / `::contact()` are the AUTHENTICATED
+CRUD path: they require `Identity` and call `assertCanManage()` (the email
+section is permission-gated), and their repository reads through the
+per-request `DatabasePort` — which Tenancy's `TenantContextStage` rebinds to
+the TENANT database on a tenant-scoped host.
+
+Server-side delivery code has neither of those things available. Sending the
+Contact-page mail (and the admin's reply) needs the tenant's SMTP + contact
+settings from an **anonymous** request, and `tenant_settings_*` are CENTRAL
+control-plane tables — reading them through a possibly-rebound `DatabasePort`
+would silently hit the tenant database instead.
+
+`Plugins\Settings\API\Contracts\TenantSettingsReaderContract` exists for
+exactly that case:
+
+```php
+interface TenantSettingsReaderContract
+{
+    /** Null when the tenant has no `tenant_settings_email` row yet. */
+    public function email(string $tenantId): ?EmailSettingsDTO;
+
+    /** Null when the tenant has no `tenant_settings_contact` row yet. */
+    public function contact(string $tenantId): ?ContactSettingsDTO;
+}
+```
+
+- **No `Identity`, no permission check.** Callable from an anonymous request,
+  a queue worker, or a CLI job — anything with no authenticated caller.
+- **Always reads the CENTRAL connection**, via
+  `Plugins\Database\API\Contracts\DatabaseConnectionManagerContract::default()`
+  — never the per-request `DatabasePort`. This is the same pattern Tenancy's
+  own control-plane code uses to reach central tables regardless of what the
+  current request has rebound `DatabasePort` to.
+- **Returns `null`**, not a defaulted DTO, when the tenant has no row —
+  unlike the CRUD path's `company()`/`system()`/etc., which return
+  `DTO::defaults()` so an authenticated caller never sees a null. A mail
+  sender needs to tell "not configured" apart from "configured with empty
+  values" and falls back to `.env` in the former case.
+- **Never expose this over HTTP or echo its result to an unauthenticated
+  caller.** `EmailSettingsDTO` carries the SMTP password in the clear (see
+  the security note below) — `TenantSettingsReaderContract` has no built-in
+  authorization to stop that.
+
+```php
+final class ContactMailer
+{
+    public function __construct(
+        private readonly TenantSettingsReaderContract $settings,
+    ) {}
+
+    public function send(string $tenantId, ContactFormDTO $form): void
+    {
+        $email   = $this->settings->email($tenantId);
+        $contact = $this->settings->contact($tenantId);
+
+        $host = $email?->smtpHost ?? env('MAIL_HOST');
+        // … build the transport from $email, falling back to .env when null.
+    }
+}
+```
+
+A route needs no new domain to consume this contract: it is exposed by the
+same `tenant.settings` module `SettingsServiceContract` already is, so
+`"requires": ["tenant.settings"]` is sufficient.
+
+### Known gap — secrets are stored in plaintext
+
+`smtp_password` (`tenant_settings_email`) and the third-party provider keys
+(`sendgrid_api_key`, `mailgun_api_key`, `postmark_server_token`,
+`aws_secret_access_key` — `tenant_settings_email_providers`) are stored as
+plain `varchar` columns and round-tripped verbatim by `toRow()`/`fromRow()`.
+`EmailSettingsDTO::toArray()` / `EmailProviderSettingsDTO::toArray()` mask
+these for the HTTP GET response (a `********ab12`-style hint), but that
+masking is a response-shaping concern only — the underlying storage is not
+encrypted, and `TenantSettingsReaderContract` (this system read path) returns
+the UNMASKED value on purpose, since it feeds a real SMTP/API connection.
+Encrypting these columns at rest is a real gap; it is out of scope for this
+change and is not addressed here.
+
 ## Migrations
 
 The schema lives in `database/migrations/` and is owned by this plugin. These are
